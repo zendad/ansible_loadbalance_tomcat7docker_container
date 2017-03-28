@@ -1,0 +1,64 @@
+---
+# Stop all containers running the specified image.
+- name: obsolete container
+  docker:
+    image: mbentley/tomcat7
+    state: stopped
+
+# Stop and remove a container with the specified name.
+- name: obsolete container
+  docker:
+    name: tomcat7
+    image: mbentley/tomcat7
+    state: absent
+
+# remove the image for tomcat7.
+- name: Remove  tomcat7 image
+  docker_image:
+    state: absent
+    name: mbentley/tomcat7
+    tag: latest
+
+# pull the latest tomcat7 image.
+- name: pull tomcat7 image
+  docker_image:
+    name: mbentley/tomcat7
+    tag: latest
+
+#syslog changes to accept logs
+- name: make changes to rsyslog.conf
+  lineinfile: dest=/etc/rsyslog.conf
+              line='{{item}}'
+  with_items:
+    - '$ModLoad imudp'
+    - '$UDPServerRun 5000'
+    - '$ModLoad imtcp'
+    - '$InputTCPServerrun 5000'
+
+#restart syslog
+- name: restart syslog
+  sudo: yes
+  command: service rsyslog restart
+
+# make work directory
+- name: Creates directory
+  file: path=/srv/tomcat state=directory owner=root group=root mode=0775
+
+# copy docker compose file to work directory
+- name: docker compose file to work directory
+  template: src=docker-compose.yml dest=/srv/tomcat/docker-compose.yml
+
+# copy docker compose file to work directory
+- name: docker compose file to work directory
+  template: src=tomcat-compose.sh dest=/srv/tomcat/tomcat-compose.sh mode=0775
+
+# run docker compose script
+- name: executing script
+  shell: /srv/tomcat/tomcat-compose.sh >> /srv/tomcat/tomcat-compose.log
+
+
+# sample tomcat test application
+- name: sample tomcat war file
+  get_url:
+    url: https://tomcat.apache.org/tomcat-6.0-doc/appdev/sample/sample.war
+    dest: /opt/tomcat/webapps/sample.war

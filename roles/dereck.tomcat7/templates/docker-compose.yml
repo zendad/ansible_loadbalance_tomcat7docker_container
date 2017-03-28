@@ -1,0 +1,42 @@
+version: '2'
+services:
+  tomcat:
+    image: mbentley/tomcat7
+    ports:
+      - 8080
+    volumes:
+      - /opt/tomcat/webapps:/opt/tomcat/webapps
+
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "udp://localhost:5000"
+
+    networks:
+      - front-tier
+      - back-tier
+
+  redis:
+    image: redis
+    links:
+      - tomcat
+    networks:
+      - back-tier
+
+  lb:
+    image: dockercloud/haproxy
+    ports:
+      - 80:80
+    links:
+      - tomcat
+    networks:
+      - front-tier
+      - back-tier
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock 
+
+networks:
+  front-tier:
+    driver: bridge
+  back-tier:
+    driver: bridge
